@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <title>dijkstra's algorithm</title>
+  <link rel='stylesheet' href='dijkstra.css'>
+	<meta charset='utf-8'>
+	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <meta name='topic' content="dijkstra's algorithm">
+  <meta name='author' content='O Karthik Balaji'>
+  <meta name='description' content="dijkstra's algorithm">
+</head>
+
+<body>
+	<div class='page'>
+		<h2>Dijkstra's algorithm.</h2>
+		<p>
+			This is an implementation of Dijkstra's algorithm. Enter #nodes and #edges. Nodes will be 
+      initialized randomly. Enter 'from' and 'to' nodes and hit 'calculateShortestPath' to calculate 
+      the shortest path b/w 'from' and 'to'.
+		</p>
+		<div class='flex' style='margin: 2em auto;'>
+			<img src='dijkstra.jpg' alt='trolololol' style='max-width: 70%'>
+    </div>
+    <div class='flex'>
+      <span style='margin: 0 1em 0 1em;'>#nodes</span>
+      <textarea style='margin: 0 1em 0 1em;' name='numNodes' id='numNodes' cols='10' rows='1'>69</textarea>
+    </div>
+    <div class='flex'>
+      <span style='margin: 0 1em 0 1em;'>#edges</span>
+      <textarea style='margin: 0 1em 0 1em;' name='numEdges' id='numEdges' cols='10' rows='1'>69</textarea>
+    </div>
+    <div class='flex'>
+      <span id='draw' class='button'>draw</span>
+      <span id='clear' class='button'>clear</span>
+    </div>
+    <div class='flex'>
+      <span style='margin: 0 1em 0 1em;'>from</span>
+      <textarea style='margin: 0 1em 0 1em;' name='from' id='from' cols='10' rows='1'>0</textarea>
+    </div>
+    <div class='flex'>
+      <span style='margin: 0 1em 0 1em;'>to</span>
+      <textarea style='margin: 0 1em 0 1em;' name='to' id='to' cols='10' rows='1'>1</textarea>
+    </div>
+    <div class='flex'>
+      <span id='calculateShortestPath' class='button'>calculateShortestPath</span>
+    </div>
+    <div class='flex'>
+      <div id='box'>
+        <svg id='field' height=100% width=100%></svg>
+      </div>
+    </div>
+    <div id='shortestPathLength' class='flex'></div>
+    <div id='shortestPath' class='flex'></div>
+  </div>
+  <script src='dijkstra.js'></script>
+</body>
+
+</html>
