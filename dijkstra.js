@@ -27,7 +27,6 @@ function enqueue(A, item, key) {
   );
 }
 
-
 class Graph {
   constructor() {
     this.numNodes = 0; 
@@ -35,7 +34,7 @@ class Graph {
     this.list = {};
   }
 
-  addNode(node) {
+  addNode(node, x = undefined, y = undefined) {
     if (!(node in this.list)) {
       this.list[node] = [];
       this.numNodes += 1;
@@ -59,42 +58,35 @@ class Graph {
     }
     let current,
         newDistance,
-        shortestPath = [],  // array to store shortest path nodes
         priorityQueue = [{ 'to': from, 'weight': 0 }],
         visited = {},
         distance = {},
         // previous[A] is A's neighbor such that
         // distance[A] = distance[previous[A]] + (edge b/w A and previous[A])
-        previous = {};
+        previous = {},
+        shortestPath = [];
     Object.keys(this.list).forEach(
       node => {
-        // all nodes are initially unvisited
         visited[node] = false;
-        // distance to every node = Infinity
-        // distance to start node = 0
         distance[node] = node != from ? Infinity : 0;
       }
     );
-    // run loop till priorityQueue empties or end node is reached
     while (priorityQueue.length && current != to) {
-      current = priorityQueue.shift().to;  // Get current node
+      current = priorityQueue.shift().to;
       visited[current] = true;  // mark current node as visited
       for (let neighbor of this.list[current]) {
         if (!visited[neighbor.to]) {
-          // add neighbor to priorityQueue (weight is priority)
           enqueue(priorityQueue, neighbor, 'weight');
           // distance to neighbor through current node is newDistance
           newDistance = distance[current] + neighbor.weight;
-          // if newDistance < previous distance of neighbor...
           if (newDistance < distance[neighbor.to]) {
             distance[neighbor.to] = newDistance;
-            // neighbor's previous node is curreny node
+            // neighbor's previous node is current node
             previous[neighbor.to] = current;
           }
         }
       }
     }
-    // get shortest path nodes
     while (current in previous && current != from) {
       shortestPath.push(current);
       current = previous[current];
@@ -114,13 +106,12 @@ function getElement(id) {
   return document.getElementById(id);
 }
 
-// pick n elements @ random from an array
-function sampleArray(A, n) {
+function arraySample(A, n) {
   let sample = new Array(n),
       length = A.length,
       taken = new Array(length);
   if (n > length) {
-    throw new RangeError('sampleArray: choose A.length elements or less');
+    throw new RangeError('n > array length');
   }
   while (n--) {
     let index = Math.floor(length * Math.random());
@@ -130,7 +121,7 @@ function sampleArray(A, n) {
   return sample;
 }
 
-// return HTML of SVG circle with given styles
+// HTML for SVG circle
 function nodeHTML(id, cx, cy, r, stroke, strokeWidth, fill) {
   return (
     `<circle id=node${id} cx=${cx} cy=${cy} r=${r} stroke=${stroke} `
@@ -138,7 +129,7 @@ function nodeHTML(id, cx, cy, r, stroke, strokeWidth, fill) {
   );
 }
 
-// return HTML of SVG line with given styles
+// HTML for SVG line
 function lineHTML(id, x1, x2, y1, y2, stroke, strokeWidth) {
   return (
     `<line id=line${id} x1=${x1} x2=${x2} y1=${y1} y2=${y2} `
@@ -150,19 +141,34 @@ function lineHTML(id, x1, x2, y1, y2, stroke, strokeWidth) {
 // i.e., distance b/w elements with id's 'nodei' and 'nodej'
 function distanceBetweenNodes(i, j) {
   let from = getElement(`node${i}`).getBBox(),
-    to = getElement(`node${j}`).getBBox();
+      to = getElement(`node${j}`).getBBox();
   return Math.sqrt((from.x - to.x) ** 2 + (from.y - to.y) ** 2);
 }
 
-// HTML for nodes' SVG (<circle>)
-function sprinkle(field, numNodes) {
+// graph with n nodes has n * (n - 1) / 2 unique edges
+// edge (u, v) = (v, u) if graph is undirected
+function setOfAllUniqueEdges(numNodes) {
+  let uniqueEdges = [];
+  for (let i = 0; i < numNodes; i++) {
+    for (let j = i + 1; j < numNodes; j++) {
+      uniqueEdges.push(
+        { 'from': i, 'to': j, 'weight': distanceBetweenNodes(i, j) }
+      )
+    }
+  }
+  return uniqueEdges;
+}
+
+// create random graph
+function createGraph(field, numNodes) {
   let fieldWidth = parseInt(
         window.getComputedStyle(field).width, 10
       ),
-      fieldInnerHTML = '',  // HTML of plot element
-      edges = [];  // to store set of all edges (unique)
-  G = new Graph();  // initialize a graph
+      fieldInnerHTML = '',
+      G = new Graph();
+  // HTML for each node
   for (let i = 0; i < numNodes; i++) {
+    G.addNode(i);  // add node to graph
     fieldInnerHTML += nodeHTML(
       i,
       3 + (fieldWidth - 6) * Math.random(),
@@ -171,43 +177,25 @@ function sprinkle(field, numNodes) {
       'greenyellow',
       1,
       'black'
-    );  // add node HTML to field
-    G.addNode(i);  // add node to graph
+    );
   } 
   // field now has HTML for all nodes
-  field.innerHTML = fieldInnerHTML;  
-  // create list of all possible edges (unique)
-  for (let i = 0; i < numNodes; i++) {
-    for (let j = i + 1; j < numNodes; j++) {
-      edges.push(
-        { 'from': i, 'to': j, 'weight': distanceBetweenNodes(i, j) }
-      )
-    }
-  }
-  return [G, edges];  // return graph and set of unique edges
+  field.innerHTML = fieldInnerHTML;
+  return G;
 }
 
-
-// HTML for edges' SVG (<line>)
-function connect(field, G, sample, DAG = false) {
+// add edges to graph
+function connectGraph(field, G, edges) {
   let from,
       to,
-      fieldInnerHTML = '',
-      // if graph is a DAG, then addEdge(i, j, weight)
-      // will only add edge b/w i and j and not j and i
-      addEdge = (
-        x => x ?
-          (i, j, weight) => G.addEdge(i, j, weight) :
-          (i, j, weight) => {
-            G.addEdge(i, j, weight);
-            G.addEdge(j, i, weight);
-          }
-      )(DAG);
-  // add HTML for each edge in sample
-  for (let edge of sample) {
+      fieldInnerHTML = '';
+  for (let edge of edges) {
     from = getElement(`node${edge.from}`).getBBox();
     to = getElement(`node${edge.to}`).getBBox();
-    addEdge(...Object.values(edge));
+    // add edge to graph
+    G.addEdge(edge.from, edge.to, edge.weight);
+    G.addEdge(edge.to, edge.from, edge.weight);
+    // HTML for each edge
     fieldInnerHTML += lineHTML(
       `${edge.from}${edge.to}`,
       from.x + from.width / 2,
@@ -219,9 +207,7 @@ function connect(field, G, sample, DAG = false) {
     );
   }
   field.innerHTML += fieldInnerHTML;
-  return G;  // return modified graph
 }
-
 
 // input array like [0, 5, 3, 1]
 // highlights edge b/w node 0 and 5, then node 5 and 3, and so on
@@ -230,35 +216,39 @@ function highlightPath(path, color, strokeWidth) {
   let line;
   for (let i = 0; i < path.length - 1; i++) {
     line = getElement(`line${path[i]}${path[i + 1]}`);
-    line = line ? line : getElement(`line${path[i + 1]}${path[i]}`);
-    line.style.stroke = color;
-    line.style.strokeWidth = strokeWidth;
+    line = line ? line : getElement(`line${path[i + 1]}${path[i]}`); 
+    try {
+      line.style.stroke = color;
+      line.style.strokeWidth = strokeWidth;
+    } catch {
+      throw new RangeError(
+        `line with id 'line${path[i]}${path[i + 1]}' doesn't exist`
+      );
+    }
   }
 }
 
-
 let box = getElement('box'),
     field = getElement('field'),
-    clear = getElement('clear'),
-    draw = getElement('draw'),
     numNodesElement = getElement('numNodes'),
     numEdgesElement = getElement('numEdges'),
+    draw = getElement('draw'),
+    clear = getElement('clear'),
     fromElement = getElement('from'),
     toElement = getElement('to'),
     calculateShortestPath = getElement('calculateShortestPath'),
     shortestPathLengthElement = getElement('shortestPathLength'),
     shortestPathElement = getElement('shortestPath'),
-    boxWidth,  // width of element containing SVG of graph
+    boxWidth,
+    numNodes,
+    numEdges,
+    uniqueEdges,
+    edges,
     G,  // graph!
-    numNodes,  // number of nodes
-    numEdges,  // number of edges
-    edges,  // store set of all possible edges
-    sample,  // store a sample of edges
     shortestPathLength,
     shortestPath = [];
 
-
-// reset boxWidth when box is resized
+// box is always a square
 let boxHeightAdjust = new ResizeObserver(
   () => {
     boxWidth = window.getComputedStyle(box).width;
@@ -268,80 +258,69 @@ let boxHeightAdjust = new ResizeObserver(
 );
 boxHeightAdjust.observe(box);
 
-
 function CLEAR() {
   box.style.display = 'none';
-  shortestPathLengthElement.style.display = 'none';
-  shortestPathElement.style.display = 'none';
-  field.innerHTML = '';
   numNodesElement.value = '';
   numEdgesElement.value = '';
   fromElement.value = '';
   toElement.value = '';
-  shortestPathLengthElement.innerHTML = '';
-  shortestPathElement.innerHTML = '';
+  shortestPathLengthElement.style.display = 'none';
+  shortestPathElement.style.display = 'none';
   G.reset();
+  uniqueEdges = [];
   edges = [];
-  sample = [];
   shortestPath = [];
 }
-
 
 clear.onclick = () => {
   CLEAR();
 }
 
-
 draw.onclick = () => {
-  // box's display is 'none' initially - change to 'flex'
   box.style.display = 'flex';
-  // clear output
+  // clear previous output
   shortestPath = [];
-  shortestPathLengthElement.innerHTML = '';
   shortestPathLengthElement.style.display = 'none';
-  shortestPathElement.innerHTML = '';
   shortestPathElement.style.display = 'none';
-  // get number of nodes and edges
+  // get #nodes and #edges
   numNodes = numNodesElement.value == '' ? 0 : parseInt(numNodesElement.value, 10);
   numEdges = numEdgesElement.value == '' ? 0 : parseInt(numEdgesElement.value, 10);
-  // get graph and set of all possible edges
-  [G, edges] = sprinkle(field, numNodes);
+  // generate graph
+  G = createGraph(field, numNodes);
+  uniqueEdges = setOfAllUniqueEdges(numNodes);
   try {
-    // sample from edges
-    sample = sampleArray(edges, numEdges);
+    edges = arraySample(uniqueEdges, numEdges);
   } catch {
     alert('#edges SHOULD BE <= #nodes * (#nodes - 1) / 2');
     CLEAR();
   }
-  // edges HTML
-  G = connect(field, G, sample);
+  connectGraph(field, G, edges);
 }
-
 
 calculateShortestPath.onclick = () => {
   // remove previous highlights
   highlightPath(shortestPath, 'white', 0.5);
-  shortestPathElement.innerHTML = '';  // clear previous output
-  // get start and end nodes
   from = parseInt(fromElement.value, 10);
   to = parseInt(toElement.value, 10);
   try {
-    // dijkstra
     [shortestPathLength, shortestPath] = G.dijkstra(from, to);
   } catch {
     alert('INVALID from/to VALUES!');
     CLEAR();
   }
-  if (shortestPathLength != Infinity) {
+  // display and highlight shortest path if 
+  // shortestPathLength is not null, undefined, and Infinity
+  if (shortestPathLength && shortestPathLength != Infinity) {
     highlightPath(shortestPath, 'yellow', 1);  // highlight shortest path
+    // HTML for displaying shortest path nodes
     shortestPathElement.innerHTML = (
-      'start -- '
-      + shortestPath.map(x => x.toString() + ' -- ').reduce((a, b) => a + b)
+      'start'
+      + shortestPath.map(x => ' - ' + x.toString() + ' - ').reduce((a, b) => a + b)
       + 'end'
-    );  // shortest path nodes HTML
+    );
     shortestPathElement.style.display = 'flex';
   }
-  // shortest path length HTML
+  // HTML for displaying shortest path length
   shortestPathLengthElement.style.display = 'flex';
   shortestPathLengthElement.innerHTML = `shortestPathLength = ${shortestPathLength}`;
 }
